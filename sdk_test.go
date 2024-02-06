@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"google.golang.org/protobuf/encoding/protojson"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/crossplane/function-sdk-go/proto/v1beta1"
 	"github.com/crossplane/function-sdk-go/request"
@@ -71,10 +72,20 @@ func Example() {
 
 	// Set our updated desired composed resource in the response we'll return.
 	_ = response.SetDesiredComposedResources(rsp, desired)
+	_ = response.RequestExtraResourceByName(rsp, "cool-extra-resource", "cool-name", schema.GroupVersionKind{
+		Group:   "example.org.",
+		Version: "v1",
+		Kind:    "CoolKind",
+	})
+	_ = response.RequestExtraResourceByLabels(rsp, "cooler-extra-resource", map[string]string{"coolness": "high"}, schema.GroupVersionKind{
+		Group:   "example.org.",
+		Version: "v1",
+		Kind:    "CoolerKind",
+	})
 
 	j, _ := protojson.Marshal(rsp)
 	fmt.Println(string(j))
 
 	// Output:
-	// {"meta":{"ttl":"60s"},"desired":{"resources":{"new":{"resource":{"apiVersion":"example.org/v1","kind":"CoolResource","metadata":{"labels":{"coolness":"high"}},"spec":{"widgets":9001}}}}}}
+	// {"meta":{"ttl":"60s"},"desired":{"resources":{"new":{"resource":{"apiVersion":"example.org/v1","kind":"CoolResource","metadata":{"labels":{"coolness":"high"}},"spec":{"widgets":9001}}}}},"requirements":{"extraResources":{"cool-extra-resource":{"apiVersion":"example.org./v1","kind":"CoolKind","matchName":"cool-name"},"cooler-extra-resource":{"apiVersion":"example.org./v1","kind":"CoolerKind","matchLabels":{"labels":{"coolness":"high"}}}}}}
 }

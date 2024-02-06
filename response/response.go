@@ -23,6 +23,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/crossplane/function-sdk-go/errors"
 	"github.com/crossplane/function-sdk-go/proto/v1beta1"
@@ -92,6 +93,59 @@ func SetDesiredComposedResources(rsp *v1beta1.RunFunctionResponse, dcds map[reso
 			r.Ready = v1beta1.Ready_READY_TRUE
 		}
 		rsp.Desired.Resources[string(name)] = r
+	}
+	return nil
+}
+
+// RequestExtraResourceByName requests an extra resource by name.
+func RequestExtraResourceByName(rsp *v1beta1.RunFunctionResponse, id, name string, gvk schema.GroupVersionKind) error {
+	if gvk.Empty() {
+		return errors.New("cannot request extra resource by name with empty GVK")
+	}
+	if id == "" {
+		return errors.New("cannot request extra resource by name with empty ID")
+	}
+	if name == "" {
+		return errors.New("cannot request extra resource by empty name with empty name")
+	}
+	if rsp.GetRequirements() == nil {
+		rsp.Requirements = &v1beta1.Requirements{}
+	}
+	if rsp.GetRequirements().GetExtraResources() == nil {
+		rsp.Requirements.ExtraResources = make(map[string]*v1beta1.ResourceSelector)
+	}
+	rsp.Requirements.ExtraResources[id] = &v1beta1.ResourceSelector{
+		ApiVersion: gvk.GroupVersion().String(),
+		Kind:       gvk.Kind,
+		Match: &v1beta1.ResourceSelector_MatchName{
+			MatchName: name,
+		},
+	}
+	return nil
+}
+
+// RequestExtraResourceByLabels requests an extra resource by labels.
+func RequestExtraResourceByLabels(rsp *v1beta1.RunFunctionResponse, id string, labels map[string]string, gvk schema.GroupVersionKind) error {
+	if gvk.Empty() {
+		return errors.New("cannot request extra resource by name with empty GVK")
+	}
+	if id == "" {
+		return errors.New("cannot request extra resource by name with empty ID")
+	}
+	if rsp.GetRequirements() == nil {
+		rsp.Requirements = &v1beta1.Requirements{}
+	}
+	if rsp.GetRequirements().GetExtraResources() == nil {
+		rsp.Requirements.ExtraResources = make(map[string]*v1beta1.ResourceSelector)
+	}
+	rsp.Requirements.ExtraResources[id] = &v1beta1.ResourceSelector{
+		ApiVersion: gvk.GroupVersion().String(),
+		Kind:       gvk.Kind,
+		Match: &v1beta1.ResourceSelector_MatchLabels{
+			MatchLabels: &v1beta1.MatchLabels{
+				Labels: labels,
+			},
+		},
 	}
 	return nil
 }
